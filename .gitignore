@@ -1,0 +1,7 @@
+# local build output
+/gesso
+
+# credentials: belong in ~/.config/gesso, never here
+token
+account-id
+.env
