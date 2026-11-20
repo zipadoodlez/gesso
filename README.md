@@ -17,9 +17,15 @@ build step, bindings and local dev. For one static directory it puts a Node
 runtime and its whole dependency tree in the deploy path, plus a lockfile to
 keep in step and a package manager on every machine that deploys.
 
-Uploading a static site is three HTTP calls. gesso is those three calls as one
-binary with no dependencies: nothing to install, nothing to audit, nothing that
-changes underneath you between deploys. The machine that runs it has no Node.
+Uploading a static site is three HTTP calls. Paying for that with a runtime
+install is a bad trade, so gesso is those three calls as one static binary:
+6.4 MB, statically linked, no dependencies, nothing to install, nothing to
+audit, nothing that changes underneath you between deploys.
+
+That is the size argument, stated honestly: 6.4 MB is not small in absolute
+terms, and Go's runtime with `net/http` is 3.4 MB of it before any of this code.
+It is one file with no install step, against a Node runtime and its dependency
+tree.
 
 Files are addressed by content, so a redeploy of an unchanged directory uploads
 nothing: two requests, no asset bytes.
@@ -30,11 +36,15 @@ nothing: two requests, no asset bytes.
 go install github.com/zipadoodlez/gesso@latest
 ```
 
-Or build it and put it on your PATH:
+Or build a static binary and put it on your PATH:
 
 ```
-go build -o gesso .
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o gesso .
 install -m 755 gesso ~/.local/bin/
+```
+
+The flags are what get it to 6.4 MB. `go install` above skips them, so it
+produces the larger, dynamically linked build.
 ```
 
 ## Usage
@@ -118,12 +128,11 @@ Always skipped: dotfiles and dot-directories, `__pycache__`, `node_modules`,
 
 One [path.Match](https://pkg.go.dev/path#Match) pattern per line in
 `<directory>/.siteignore`, `#` for comments. Patterns are matched against the
-whole relative path and against the base name. To keep a build script out of
-the upload:
+whole relative path and against the base name.
 
-```
-build.py
-```
+`.siteignore` is to the upload what `.gitignore` is to a commit: name what stays
+on the machine, and everything else goes. It is not `.gitignore` and never reads
+one, so a directory that has a `.gitignore` still needs its own `.siteignore`.
 
 `_headers` and `_redirects` are never uploaded as files.
 
